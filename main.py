@@ -4,7 +4,7 @@ from time import strftime, localtime
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.layers import Dense, Dropout, BatchNormalization
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 
@@ -32,17 +32,20 @@ def preprocessing():
 
 def build_model(input_dim):
     model = Sequential([
-        Dense(512, activation="relu", input_dim=input_dim),
-        Dropout(0.3),
-        Dense(512, activation="relu"),
-        Dropout(0.3),
-        Dense(64, activation="relu"),
-        Dropout(0.3),
+        Dense(256, activation="relu", input_dim=input_dim),
+        BatchNormalization(),
+        Dropout(0.1),
+        Dense(128, activation="relu"),
+        BatchNormalization(),
+        Dropout(0.1),
+        Dense(128, activation="relu"),
+        BatchNormalization(),
+        Dropout(0.1),
         Dense(1, activation="sigmoid")
     ])
 
     model.compile(
-        optimizer=Adam(lr=0.0005, decay=1e-6),
+        optimizer=Adam(lr=0.001),
         loss="binary_crossentropy",
         metrics=["accuracy"]
     )
@@ -55,8 +58,8 @@ def train():
     model = build_model(x_train.shape[1])
 
     time_now = strftime("%Y_%m_%d_%H_%M", localtime())
-    NAME = f"cat_dog_model_{time_now}"
-    tensorboard = TensorBoard(log_dir="logs/{}".format(NAME))
+    NAME = f"heart_disease_model_{time_now}"
+    tensorboard = TensorBoard(log_dir="logs\{}".format(NAME))
     checkpoint = ModelCheckpoint(
         "saved_models/{}.model".format("heart_data_{epoch:02d}_{val_loss:.3f}"),
         monitor="val_loss",
@@ -66,11 +69,14 @@ def train():
     model.fit(
         x_train, y_train,
         validation_split=0.2,
-        epochs=100,
+        epochs=50,
         batch_size=64,
         verbose=2,
         shuffle=True,
-        # callbacks=[tensorboard, checkpoint]
+        callbacks=[
+            tensorboard,
+            # checkpoint
+        ]
     )
 
     model.evaluate(
